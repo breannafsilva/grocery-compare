@@ -17,6 +17,15 @@ type PriceQuote = {
   packSize: number;
   packageLabel: string;
   note?: string;
+  source?: "seed" | "live" | "manual";
+  sourceName?: string;
+  fetchedAt?: string;
+  regularPrice?: number;
+  promoPrice?: number;
+  dealType?: "sale" | "coupon" | "membership" | "none";
+  dealNote?: string;
+  productName?: string;
+  confidence?: "matched" | "fallback";
 };
 
 type CatalogItem = {
@@ -40,6 +49,38 @@ type LineChoice = {
 
 type Tab = "split" | "single" | "prices";
 
+type SourceStatus = {
+  storeId: string;
+  status: "live" | "needs_config" | "provider_needed" | "error";
+  sourceName: string;
+  message: string;
+  checkedAt: string;
+};
+
+type LiveQuote = {
+  itemId: string;
+  storeId: string;
+  price: number;
+  packageLabel?: string;
+  regularPrice?: number;
+  promoPrice?: number;
+  dealType?: "sale" | "coupon" | "membership" | "none";
+  dealNote?: string;
+  source: "live";
+  sourceName: string;
+  fetchedAt: string;
+  productName?: string;
+  confidence: "matched" | "fallback";
+};
+
+type LivePriceResponse = {
+  fetchedAt: string;
+  quotes: Record<string, Record<string, LiveQuote>>;
+  sourceStatus: Record<string, SourceStatus>;
+  assumptions: string[];
+  error?: string;
+};
+
 const currency = new Intl.NumberFormat("en-US", {
   style: "currency",
   currency: "USD",
@@ -54,6 +95,8 @@ const storeColors = [
   "#0f766e",
   "#be185d",
 ];
+
+const defaultPostalCode = process.env.NEXT_PUBLIC_DEFAULT_POSTAL_CODE ?? "60601";
 
 const seedStores: Store[] = [
   {
@@ -277,6 +320,91 @@ function formatNumber(value: number) {
   return Number.isInteger(value) ? String(value) : value.toFixed(1);
 }
 
+function formatDateTime(value?: string) {
+  if (!value) {
+    return "Not synced";
+  }
+
+  return new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  }).format(new Date(value));
+}
+
+function quoteSourceLabel(quote?: PriceQuote) {
+  if (!quote) {
+    return "No price";
+  }
+
+  if (quote.source === "live") {
+    return "Live";
+  }
+
+  if (quote.source === "manual") {
+    return "Manual";
+  }
+
+  return "Estimate";
+}
+
+function quoteDealLabel(quote?: PriceQuote, storeId?: string) {
+  if (!quote) {
+    return null;
+  }
+
+  if (quote.dealType === "sale") {
+    return "Sale";
+  }
+
+  if (quote.dealType === "coupon") {
+    return "Coupon";
+  }
+
+  if (quote.dealType === "membership" || storeId === "costco") {
+    return "Member";
+  }
+
+  return null;
+}
+
+function quoteNote(quote?: PriceQuote, store?: Store) {
+  if (!quote) {
+    return "No price entered yet.";
+  }
+
+  const pieces = [
+    quote.sourceName ?? quoteSourceLabel(quote),
+    quote.productName ? `Matched ${quote.productName}` : null,
+    quote.fetchedAt ? `Synced ${formatDateTime(quote.fetchedAt)}` : null,
+    quote.dealNote,
+    store?.id === "costco" ? "Membership assumed." : null,
+  ].filter(Boolean);
+
+  return pieces.join(" ");
+}
+
+function PriceBadges({
+  quote,
+  store,
+}: {
+  quote?: PriceQuote;
+  store?: Store;
+}) {
+  const source = quoteSourceLabel(quote);
+  const deal = quoteDealLabel(quote, store?.id);
+
+  return (
+    <span className="price-badges" title={quoteNote(quote, store)}>
+      <span className={`price-badge ${source.toLowerCase()}`}>{source}</span>
+      {deal ? (
+        <span className={`price-badge ${deal.toLowerCase()}`}>{deal}</span>
+      ) : null}
+    </span>
+  );
+}
+
 function lineFor(
   item: CatalogItem,
   store: Store,
@@ -429,6 +557,17 @@ export default function Home() {
   const [customItemName, setCustomItemName] = useState("");
   const [customItemUnit, setCustomItemUnit] = useState("each");
   const [customItemCategory, setCustomItemCategory] = useState("Custom");
+  const [postalCode, setPostalCode] = useState(defaultPostalCode);
+  const [syncState, setSyncState] = useState<"idle" | "loading" | "success" | "error">(
+    "idle",
+  );
+  const [syncMessage, setSyncMessage] = useState(
+    "Seed prices are active until a live source is configured.",
+  );
+  const [lastSync, setLastSync] = useState<string | undefined>();
+  const [sourceStatus, setSourceStatus] = useState<Record<string, SourceStatus>>(
+    {},
+  );
 
   const selectedItems = useMemo(
     () =>
@@ -491,6 +630,51 @@ export default function Home() {
     (sum, item) => sum + (shoppingList[item.id] ?? 0),
     0,
   );
+  const storeSourceSummaries = stores.map((store) => {
+    const status = sourceStatus[store.id];
+
+    if (status) {
+      return status;
+    }
+
+    if (store.id === "marianos") {
+      return {
+        storeId: store.id,
+        status: "needs_config" as const,
+        sourceName: "Kroger Product API",
+        message: "Ready for official Kroger API credentials.",
+        checkedAt: lastSync ?? "",
+      };
+    }
+
+    if (store.id === "costco") {
+      return {
+        storeId: store.id,
+        status: "provider_needed" as const,
+        sourceName: "Costco live provider",
+        message: "Membership assumed; live member prices need an approved provider.",
+        checkedAt: lastSync ?? "",
+      };
+    }
+
+    if (store.id === "jewel") {
+      return {
+        storeId: store.id,
+        status: "provider_needed" as const,
+        sourceName: "Jewel-Osco live provider",
+        message: "Sales and digital coupons need an approved data source.",
+        checkedAt: lastSync ?? "",
+      };
+    }
+
+    return {
+      storeId: store.id,
+      status: "provider_needed" as const,
+      sourceName: "Custom provider",
+      message: "Add a provider adapter before live prices can sync.",
+      checkedAt: lastSync ?? "",
+    };
+  });
 
   function updateQuantity(item: CatalogItem, nextQuantity: number) {
     setShoppingList((current) => {
@@ -505,6 +689,96 @@ export default function Home() {
 
       return next;
     });
+  }
+
+  async function syncLivePrices() {
+    setSyncState("loading");
+    setSyncMessage("Checking live providers...");
+
+    try {
+      const response = await fetch("/api/live-prices", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          postalCode,
+          stores: stores.map((store) => ({
+            id: store.id,
+            name: store.name,
+          })),
+          items: catalog.map((item) => ({
+            id: item.id,
+            name: item.name,
+            unit: item.unit,
+            quantity: shoppingList[item.id] ?? item.step,
+          })),
+        }),
+      });
+      const payload = (await response.json()) as LivePriceResponse;
+
+      if (!response.ok || payload.error) {
+        throw new Error(payload.error ?? "Live price sync failed.");
+      }
+
+      setSourceStatus(payload.sourceStatus);
+      setLastSync(payload.fetchedAt);
+      setCatalog((current) =>
+        current.map((item) => {
+          const liveQuotes = payload.quotes[item.id];
+
+          if (!liveQuotes) {
+            return item;
+          }
+
+          const nextPrices = { ...item.prices };
+
+          for (const [storeId, liveQuote] of Object.entries(liveQuotes)) {
+            const existing = nextPrices[storeId];
+
+            nextPrices[storeId] = {
+              ...existing,
+              price: liveQuote.price,
+              packSize: existing?.packSize ?? 1,
+              packageLabel:
+                liveQuote.packageLabel ?? existing?.packageLabel ?? item.unit,
+              regularPrice: liveQuote.regularPrice,
+              promoPrice: liveQuote.promoPrice,
+              dealType: liveQuote.dealType ?? "none",
+              dealNote: liveQuote.dealNote,
+              source: "live",
+              sourceName: liveQuote.sourceName,
+              fetchedAt: liveQuote.fetchedAt,
+              productName: liveQuote.productName,
+              confidence: liveQuote.confidence,
+              note: liveQuote.dealNote,
+            };
+          }
+
+          return {
+            ...item,
+            prices: nextPrices,
+          };
+        }),
+      );
+
+      const liveCount = Object.values(payload.quotes).reduce(
+        (sum, storeQuotes) => sum + Object.keys(storeQuotes).length,
+        0,
+      );
+
+      setSyncState("success");
+      setSyncMessage(
+        liveCount > 0
+          ? `Applied ${liveCount} live quote${liveCount === 1 ? "" : "s"}.`
+          : "No live quotes applied. Provider statuses are listed below.",
+      );
+    } catch (error) {
+      setSyncState("error");
+      setSyncMessage(
+        error instanceof Error ? error.message : "Unable to sync live prices.",
+      );
+    }
   }
 
   function addItem(item: CatalogItem) {
@@ -605,6 +879,11 @@ export default function Home() {
             key === "price" || key === "packSize"
               ? Math.max(0, Number(value) || 0)
               : value,
+          source: "manual",
+          sourceName: "Manual override",
+          fetchedAt: undefined,
+          dealType: "none",
+          dealNote: "Edited in the price book.",
         };
 
         return {
@@ -649,6 +928,57 @@ export default function Home() {
           </div>
         </div>
       </header>
+
+      <section className="live-panel" aria-label="Live pricing">
+        <div className="live-panel-top">
+          <div>
+            <p className="eyebrow">Live pricing</p>
+            <h2>Prices, sales, coupons</h2>
+          </div>
+          <div className="live-controls">
+            <label className="zip-input">
+              <span>ZIP</span>
+              <input
+                aria-label="Pricing ZIP code"
+                value={postalCode}
+                inputMode="numeric"
+                maxLength={10}
+                onChange={(event) => setPostalCode(event.target.value)}
+              />
+            </label>
+            <button
+              className="text-button live-sync-button"
+              type="button"
+              disabled={syncState === "loading"}
+              onClick={syncLivePrices}
+            >
+              {syncState === "loading" ? "Syncing" : "Sync"}
+            </button>
+          </div>
+        </div>
+        <div className="live-status-row">
+          <span className={`sync-message ${syncState}`}>{syncMessage}</span>
+          <span>Last sync: {formatDateTime(lastSync)}</span>
+        </div>
+        <div className="provider-grid">
+          {storeSourceSummaries.map((status) => {
+            const store = stores.find((candidate) => candidate.id === status.storeId);
+
+            return (
+              <article className="provider-card" key={status.storeId}>
+                <div>
+                  <strong>{store?.name ?? status.storeId}</strong>
+                  <span>{status.sourceName}</span>
+                </div>
+                <span className={`provider-status ${status.status}`}>
+                  {status.status.replace("_", " ")}
+                </span>
+                <p>{status.message}</p>
+              </article>
+            );
+          })}
+        </div>
+      </section>
 
       <section className="store-strip" aria-label="Store totals">
         {storeTotals.map(({ store, total, missingCount, subtotal }) => {
@@ -809,6 +1139,9 @@ export default function Home() {
                         ? `${bestLine.store.name}, ${currency.format(bestLine.cost)}`
                         : "No active price"}
                     </span>
+                    {bestLine ? (
+                      <PriceBadges quote={bestLine.quote} store={bestLine.store} />
+                    ) : null}
                   </div>
                   <div className="quantity-control">
                     <button
@@ -938,6 +1271,7 @@ export default function Home() {
                             </div>
                             <div>
                               <span>{line.packages} x {line.quote.packageLabel}</span>
+                              <PriceBadges quote={line.quote} store={line.store} />
                               <strong>{currency.format(line.cost)}</strong>
                             </div>
                           </li>
@@ -1090,6 +1424,14 @@ export default function Home() {
                                   )
                                 }
                               />
+                              <PriceBadges quote={quote} store={store} />
+                              {quote?.regularPrice &&
+                              quote.promoPrice &&
+                              quote.promoPrice < quote.regularPrice ? (
+                                <small className="regular-price">
+                                  Regular {currency.format(quote.regularPrice)}
+                                </small>
+                              ) : null}
                             </td>
                           );
                         })}

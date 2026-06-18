@@ -1,8 +1,42 @@
-# vinext-starter
+# Grocery Compare
 
-A clean full-stack starter running on
-[vinext](https://github.com/cloudflare/vinext), with optional Cloudflare D1 and
-Drizzle support.
+Grocery Compare builds a shopping list, compares item prices across Mariano's,
+Jewel-Osco, and Costco, and shows either the best split-store route or the best
+single-store value.
+
+## Features
+
+- Editable price book for grocery items and stores
+- Bulk-pack math for Costco-style package sizes
+- Best split-store and best one-store comparisons
+- Live pricing sync layer with source status notes
+- Sale, coupon, membership, live, manual, and estimate badges
+
+## Live Pricing
+
+Live pricing is provider-based because grocery prices vary by exact store,
+loyalty account, pickup/delivery channel, membership, coupons, and weekly sales.
+
+Current provider support:
+
+- Mariano's: wired for the official Kroger Product API when credentials are set.
+- Jewel-Osco: placeholder status until an approved Albertsons/Jewel source is
+  connected.
+- Costco: placeholder status until an approved member-price source is connected.
+
+Create `.env` from `.env.example` to enable Mariano's:
+
+```bash
+KROGER_CLIENT_ID=
+KROGER_CLIENT_SECRET=
+KROGER_LOCATION_ID=
+KROGER_SCOPE=product.compact
+NEXT_PUBLIC_DEFAULT_POSTAL_CODE=60601
+```
+
+Sales are noted when the provider returns a promo price. Digital coupons are
+not applied unless a connected provider returns them. Costco membership is
+assumed and labeled in the UI.
 
 ## Prerequisites
 
@@ -16,55 +50,8 @@ npm run dev
 npm run build
 ```
 
-This starter does not use `wrangler.jsonc`.
-
-## Included Shape
-
-- edit site code under `app/`
-- `.openai/hosting.json` declares optional Sites D1 and R2 bindings
-- `vite.config.ts` simulates declared bindings for local development
-- `db/schema.ts` starts intentionally empty
-- `examples/d1/` contains an optional D1 example surface
-- `drizzle.config.ts` supports local migration generation when needed
-
-## Workspace Auth Headers
-
-OpenAI workspace sites can read the current user's email from
-`oai-authenticated-user-email`.
-
-SIWC-authenticated workspace sites may also receive
-`oai-authenticated-user-full-name` when the user's SIWC profile has a non-empty
-`name` claim. The full-name value is percent-encoded UTF-8 and is accompanied by
-`oai-authenticated-user-full-name-encoding: percent-encoded-utf-8`.
-
-Treat the full name as optional and fall back to email when it is absent:
-
-```tsx
-import { headers } from "next/headers";
-
-export default async function Home() {
-  const requestHeaders = await headers();
-  const email = requestHeaders.get("oai-authenticated-user-email");
-  const encodedFullName = requestHeaders.get("oai-authenticated-user-full-name");
-  const fullName =
-    encodedFullName &&
-    requestHeaders.get("oai-authenticated-user-full-name-encoding") ===
-      "percent-encoded-utf-8"
-      ? decodeURIComponent(encodedFullName)
-      : null;
-
-  const displayName = fullName ?? email;
-  // ...
-}
-```
-
 ## Useful Commands
 
 - `npm run dev`: start local development
 - `npm run build`: verify the vinext build output
-- `npm run db:generate`: generate Drizzle migrations after schema changes
-
-## Learn More
-
-- [vinext Documentation](https://github.com/cloudflare/vinext)
-- [Drizzle D1 Guide](https://orm.drizzle.team/docs/get-started/d1-new)
+- `npm run lint`: run ESLint

@@ -153,6 +153,136 @@ button:disabled {
   margin-top: 16px;
 }
 
+.live-panel {
+  display: grid;
+  gap: 12px;
+  margin-top: 16px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #ffffff;
+  padding: 16px;
+  box-shadow: 0 12px 34px rgba(31, 41, 51, 0.06);
+}
+
+.live-panel-top,
+.live-status-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.live-panel h2 {
+  margin: 2px 0 0;
+  color: var(--ink);
+  font-size: 1.16rem;
+  letter-spacing: 0;
+}
+
+.live-controls {
+  display: grid;
+  grid-template-columns: 126px 86px;
+  gap: 8px;
+  align-items: end;
+}
+
+.zip-input {
+  display: grid;
+  gap: 4px;
+  color: var(--muted);
+  font-size: 0.76rem;
+  font-weight: 800;
+}
+
+.live-sync-button {
+  min-height: 40px;
+}
+
+.live-status-row {
+  color: var(--muted);
+  font-size: 0.84rem;
+}
+
+.sync-message {
+  color: #405364;
+  font-weight: 760;
+}
+
+.sync-message.success {
+  color: #0f5f45;
+}
+
+.sync-message.error {
+  color: var(--red);
+}
+
+.provider-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.provider-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 6px 10px;
+  align-items: start;
+  min-height: 98px;
+  border: 1px solid #dfe6dc;
+  border-radius: 8px;
+  background: #fbfcf8;
+  padding: 10px;
+}
+
+.provider-card strong,
+.provider-card span {
+  display: block;
+}
+
+.provider-card strong {
+  color: var(--ink);
+  font-size: 0.92rem;
+}
+
+.provider-card div > span,
+.provider-card p {
+  color: var(--muted);
+  font-size: 0.76rem;
+  line-height: 1.35;
+}
+
+.provider-card p {
+  grid-column: 1 / -1;
+  margin: 0;
+}
+
+.provider-status {
+  border-radius: 999px;
+  padding: 4px 8px;
+  background: #eef2ed;
+  color: #405364;
+  font-size: 0.68rem;
+  font-weight: 850;
+  text-transform: capitalize;
+  white-space: nowrap;
+}
+
+.provider-status.live {
+  background: #e6f4ea;
+  color: #0f5f45;
+}
+
+.provider-status.error {
+  background: #fff0ed;
+  color: var(--red);
+}
+
+.provider-status.needs_config,
+.provider-status.provider_needed {
+  background: #fff5d8;
+  color: #72520d;
+}
+
 .store-card,
 .tool-panel,
 .group-card,
@@ -257,6 +387,7 @@ button:disabled {
 }
 
 .trip-input input,
+.zip-input input,
 .search-row input,
 .inline-form input,
 .quantity-control input,
@@ -280,6 +411,7 @@ button:disabled {
 }
 
 .search-row input,
+.zip-input input,
 .inline-form input,
 .price-table input {
   min-height: 40px;
@@ -363,6 +495,52 @@ button:focus-visible {
   overflow-wrap: anywhere;
   font-size: 0.78rem;
   line-height: 1.35;
+}
+
+.price-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 5px;
+}
+
+.price-badge {
+  display: inline-flex;
+  min-height: 22px;
+  align-items: center;
+  border-radius: 999px;
+  background: #eef2ed;
+  color: #405364;
+  font-size: 0.68rem;
+  font-weight: 850;
+  line-height: 1;
+  padding: 4px 7px;
+}
+
+.price-badge.live {
+  background: #e6f4ea;
+  color: #0f5f45;
+}
+
+.price-badge.manual {
+  background: #e8efff;
+  color: #1d4ed8;
+}
+
+.price-badge.estimate {
+  background: #f1f5ef;
+  color: #52606d;
+}
+
+.price-badge.sale,
+.price-badge.coupon {
+  background: #fff0d0;
+  color: #805512;
+}
+
+.price-badge.member {
+  background: #e8efff;
+  color: #1d4ed8;
 }
 
 .icon-button,
@@ -704,8 +882,20 @@ button:focus-visible {
   min-height: 34px;
 }
 
+.regular-price {
+  display: block;
+  margin-top: 5px;
+  color: var(--muted);
+  font-size: 0.74rem;
+  text-decoration: line-through;
+}
+
 @media (max-width: 1180px) {
   .store-strip {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .provider-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
@@ -738,9 +928,21 @@ button:focus-visible {
 
   .store-strip,
   .planner-grid,
+  .provider-grid,
   .result-summary,
   .result-summary.single-winner {
     grid-template-columns: 1fr;
+  }
+
+  .live-panel-top,
+  .live-status-row {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .live-controls {
+    width: 100%;
+    grid-template-columns: minmax(0, 1fr) 86px;
   }
 
   .panel-heading {
