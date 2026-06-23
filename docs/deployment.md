@@ -5,7 +5,7 @@ This app deploys from Azure DevOps Pipelines to Cloudflare Workers.
 ## Target
 
 - Azure DevOps organization: `https://dev.azure.com/Vizientinc`
-- Azure DevOps project: `compare-grocer`
+- Azure DevOps project: `ClinicalPracticeSolutionsCenter`
 - Source repository: GitHub `breannafsilva/grocery-compare`
 - Branch: `main`
 - Cloudflare account ID: `b158f2363ed6a1bec5ff4ff2d79088fc`
