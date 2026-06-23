@@ -31,7 +31,7 @@ KROGER_CLIENT_ID=
 KROGER_CLIENT_SECRET=
 KROGER_LOCATION_ID=
 KROGER_SCOPE=product.compact
-NEXT_PUBLIC_DEFAULT_POSTAL_CODE=60601
+NEXT_PUBLIC_DEFAULT_POSTAL_CODE=60647
 ```
 
 Sales are noted when the provider returns a promo price. Digital coupons are
@@ -55,3 +55,10 @@ npm run build
 - `npm run dev`: start local development
 - `npm run build`: verify the vinext build output
 - `npm run lint`: run ESLint
+- `npm run deploy:cloudflare`: build and deploy to the `compare-grocer` Cloudflare Worker
+
+## Deployment
+
+Azure DevOps CI/CD is defined in `azure-pipelines.yml`. See
+`docs/deployment.md` for the Azure secret setup, Cloudflare token permissions,
+and public/private access notes.
