@@ -96,7 +96,7 @@ const storeColors = [
   "#be185d",
 ];
 
-const defaultPostalCode = process.env.NEXT_PUBLIC_DEFAULT_POSTAL_CODE ?? "60601";
+const defaultPostalCode = process.env.NEXT_PUBLIC_DEFAULT_POSTAL_CODE ?? "60647";
 
 const seedStores: Store[] = [
   {
