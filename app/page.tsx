@@ -51,7 +51,7 @@ type Tab = "split" | "single" | "prices";
 
 type SourceStatus = {
   storeId: string;
-  status: "live" | "needs_config" | "provider_needed" | "error";
+  status: "live" | "not_synced" | "needs_config" | "provider_needed" | "error";
   sourceName: string;
   message: string;
   checkedAt: string;
@@ -640,9 +640,9 @@ export default function Home() {
     if (store.id === "marianos") {
       return {
         storeId: store.id,
-        status: "needs_config" as const,
+        status: "not_synced" as const,
         sourceName: "Kroger Product API",
-        message: "Ready for official Kroger API credentials.",
+        message: "Kroger credentials are checked when you click Sync.",
         checkedAt: lastSync ?? "",
       };
     }
@@ -971,7 +971,7 @@ export default function Home() {
                   <span>{status.sourceName}</span>
                 </div>
                 <span className={`provider-status ${status.status}`}>
-                  {status.status.replace("_", " ")}
+                  {status.status.split("_").join(" ")}
                 </span>
                 <p>{status.message}</p>
               </article>

@@ -20,7 +20,7 @@ type LivePriceRequest = {
 
 type SourceStatus = {
   storeId: string;
-  status: "live" | "needs_config" | "provider_needed" | "error";
+  status: "live" | "not_synced" | "needs_config" | "provider_needed" | "error";
   sourceName: string;
   message: string;
   checkedAt: string;
@@ -127,7 +127,15 @@ async function getKrogerToken() {
   });
 
   if (!response.ok) {
-    throw new Error(`Kroger token request failed with ${response.status}`);
+    if (response.status === 401) {
+      throw new Error(
+        "Kroger rejected the configured client ID/secret (401). Check that the credential values are exact and the Kroger app is active for the Product API.",
+      );
+    }
+
+    throw new Error(
+      `Kroger token request failed with ${response.status} ${response.statusText}`.trim(),
+    );
   }
 
   const payload = (await response.json()) as KrogerTokenResponse;

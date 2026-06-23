@@ -277,6 +277,11 @@ button:disabled {
   color: var(--red);
 }
 
+.provider-status.not_synced {
+  background: #e8efff;
+  color: #1d4ed8;
+}
+
 .provider-status.needs_config,
 .provider-status.provider_needed {
   background: #fff5d8;
