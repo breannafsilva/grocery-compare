@@ -154,6 +154,43 @@ function asPrice(value: unknown) {
   return null;
 }
 
+function krogerErrorDetail(text: string) {
+  if (!text.trim()) {
+    return null;
+  }
+
+  try {
+    const payload = JSON.parse(text) as {
+      error_description?: string;
+      errors?:
+        | Array<{ code?: string; message?: string; reason?: string }>
+        | { code?: string; message?: string; reason?: string };
+      message?: string;
+    };
+    const errors = Array.isArray(payload.errors)
+      ? payload.errors
+      : payload.errors
+        ? [payload.errors]
+        : [];
+    const details = errors
+      .map((error) => error.reason ?? error.message ?? error.code)
+      .filter(Boolean);
+    const detail = details[0] ?? payload.error_description ?? payload.message;
+
+    return detail ? String(detail).slice(0, 240) : null;
+  } catch {
+    return text.trim().slice(0, 240);
+  }
+}
+
+async function providerRequestError(response: Response, label: string) {
+  const status = `${response.status} ${response.statusText}`.trim();
+  const text = await response.text().catch(() => "");
+  const detail = krogerErrorDetail(text);
+
+  return detail ? `${label} failed with ${status}: ${detail}` : `${label} failed with ${status}`;
+}
+
 async function getKrogerToken() {
   const clientId = getEnv("KROGER_CLIENT_ID");
   const clientSecret = getEnv("KROGER_CLIENT_SECRET");
@@ -185,7 +222,7 @@ async function getKrogerToken() {
     }
 
     throw new Error(
-      `Kroger token request failed with ${response.status} ${response.statusText}`.trim(),
+      await providerRequestError(response, "Kroger token request"),
     );
   }
 
@@ -217,7 +254,7 @@ async function fetchKrogerQuote(
   });
 
   if (!response.ok) {
-    throw new Error(`Kroger product search failed with ${response.status}`);
+    throw new Error(await providerRequestError(response, "Kroger product search"));
   }
 
   const payload = (await response.json()) as KrogerProductResponse;
