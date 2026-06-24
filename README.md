@@ -70,3 +70,7 @@ npm run build
 Azure DevOps CI/CD is defined in `azure-pipelines.yml`. See
 `docs/deployment.md` for the Azure secret setup, Cloudflare token permissions,
 and public/private access notes.
+
+## Roadmap
+
+Future enhancement notes are tracked in `docs/future-enhancements.md`.
