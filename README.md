@@ -29,10 +29,18 @@ Create `.env` from `.env.example` to enable Mariano's:
 ```bash
 KROGER_CLIENT_ID=
 KROGER_CLIENT_SECRET=
-KROGER_LOCATION_ID=
+KROGER_AUTH_BASE_URL=https://api-ce.kroger.com/v1/connect/oauth2/token
+KROGER_API_BASE_URL=https://api-ce.kroger.com/v1/products
+KROGER_LOCATION_ID=53100516
 KROGER_SCOPE=product.compact
 NEXT_PUBLIC_DEFAULT_POSTAL_CODE=60647
 ```
+
+`KROGER_AUTH_BASE_URL`, `KROGER_API_BASE_URL`, `KROGER_LOCATION_ID`,
+`KROGER_SCOPE`, and `NEXT_PUBLIC_DEFAULT_POSTAL_CODE` are non-secret
+certification defaults committed through the Cloudflare/Vite Worker config.
+Keep `KROGER_CLIENT_ID` and `KROGER_CLIENT_SECRET` in local `.dev.vars` or
+Cloudflare/Azure secret storage.
 
 Sales are noted when the provider returns a promo price. Digital coupons are
 not applied unless a connected provider returns them. Costco membership is

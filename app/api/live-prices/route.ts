@@ -69,6 +69,10 @@ const providerNames: Record<string, string> = {
   costco: "Costco live provider",
 };
 
+const defaultKrogerTokenUrl =
+  "https://api.kroger.com/v1/connect/oauth2/token";
+const defaultKrogerProductsUrl = "https://api.kroger.com/v1/products";
+
 function getEnv(name: string) {
   const processValue =
     typeof process !== "undefined" ? process.env[name] : undefined;
@@ -79,6 +83,52 @@ function getEnv(name: string) {
 
   const value = (workerEnv as unknown as Record<string, unknown>)[name];
   return typeof value === "string" ? value : undefined;
+}
+
+function parseConfiguredUrl(name: string, value: string) {
+  const trimmed = value.trim();
+
+  try {
+    return new URL(trimmed);
+  } catch {
+    throw new Error(`${name} must be a valid URL.`);
+  }
+}
+
+function getKrogerTokenUrl() {
+  const tokenUrl = getEnv("KROGER_TOKEN_URL");
+  const authUrl = getEnv("KROGER_AUTH_BASE_URL");
+  const url = parseConfiguredUrl(
+    tokenUrl ? "KROGER_TOKEN_URL" : "KROGER_AUTH_BASE_URL",
+    tokenUrl ?? authUrl ?? defaultKrogerTokenUrl,
+  );
+  const path = url.pathname.replace(/\/+$/, "");
+
+  if (path.endsWith("/authorize")) {
+    url.pathname = path.replace(/\/authorize$/, "/token");
+  } else if (path.endsWith("/connect/oauth2")) {
+    url.pathname = `${path}/token`;
+  } else if (!path) {
+    url.pathname = "/v1/connect/oauth2/token";
+  }
+
+  return url;
+}
+
+function getKrogerProductsUrl() {
+  const productsUrl = getEnv("KROGER_PRODUCTS_URL");
+  const apiUrl = getEnv("KROGER_API_BASE_URL");
+  const url = parseConfiguredUrl(
+    productsUrl ? "KROGER_PRODUCTS_URL" : "KROGER_API_BASE_URL",
+    productsUrl ?? apiUrl ?? defaultKrogerProductsUrl,
+  );
+  const path = url.pathname.replace(/\/+$/, "");
+
+  if (!path.endsWith("/products")) {
+    url.pathname = path ? `${path}/products` : "/v1/products";
+  }
+
+  return url;
 }
 
 function encodeBasicAuth(clientId: string, clientSecret: string) {
@@ -113,7 +163,8 @@ async function getKrogerToken() {
     return null;
   }
 
-  const response = await fetch("https://api.kroger.com/v1/connect/oauth2/token", {
+  const tokenUrl = getKrogerTokenUrl();
+  const response = await fetch(tokenUrl, {
     method: "POST",
     headers: {
       Accept: "application/json",
@@ -153,7 +204,7 @@ async function fetchKrogerQuote(
   locationId: string,
   fetchedAt: string,
 ): Promise<LiveQuote | null> {
-  const url = new URL("https://api.kroger.com/v1/products");
+  const url = getKrogerProductsUrl();
   url.searchParams.set("filter.term", item.name);
   url.searchParams.set("filter.locationId", locationId);
   url.searchParams.set("filter.limit", "5");

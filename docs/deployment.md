@@ -5,7 +5,7 @@ This app deploys from Azure DevOps Pipelines to Cloudflare Workers.
 ## Target
 
 - Azure DevOps organization: `https://dev.azure.com/Vizientinc`
-- Azure DevOps project: `ClinicalPracticeSolutionsCenter`
+- Azure DevOps project: `compare-grocer`
 - Source repository: GitHub `breannafsilva/grocery-compare`
 - Branch: `main`
 - Cloudflare account ID: `b158f2363ed6a1bec5ff4ff2d79088fc`
@@ -55,13 +55,22 @@ Azure secret variables are masked in logs, but do not echo them in scripts.
 
 ## Runtime Secrets
 
-Kroger live pricing is optional and not configured yet. When credentials are
-available, add these as Cloudflare Worker secrets rather than committing them:
+Kroger live pricing uses committed non-secret Worker vars plus secrets. The
+non-secret certification defaults are defined in `vite.config.ts` and are copied
+into `dist/server/wrangler.json` during `npm run build`, then deployed by
+Wrangler:
+
+- `KROGER_AUTH_BASE_URL`
+- `KROGER_API_BASE_URL`
+- `KROGER_LOCATION_ID`
+- `KROGER_SCOPE`
+- `NEXT_PUBLIC_DEFAULT_POSTAL_CODE`
+
+Keep Kroger credentials as Cloudflare Worker secrets or Azure secret variables,
+not committed config:
 
 - `KROGER_CLIENT_ID`
 - `KROGER_CLIENT_SECRET`
-- `KROGER_LOCATION_ID`
-- `KROGER_SCOPE`
 
 Use Wrangler locally or in a controlled one-time pipeline step to write Worker
 secrets.
