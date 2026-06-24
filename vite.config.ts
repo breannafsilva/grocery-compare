@@ -12,7 +12,7 @@ const { d1, r2 } = hostingConfig;
 const runtimeVars = {
   KROGER_AUTH_BASE_URL: "https://api-ce.kroger.com/v1/connect/oauth2/token",
   KROGER_API_BASE_URL: "https://api-ce.kroger.com/v1/products",
-  KROGER_LOCATION_ID: "53100516",
+  KROGER_LOCATION_ID: "53100508",
   KROGER_SCOPE: "product.compact",
   NEXT_PUBLIC_DEFAULT_POSTAL_CODE: "60647",
 };
